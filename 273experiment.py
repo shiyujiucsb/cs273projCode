@@ -2,34 +2,46 @@
 #
 # Authors: Shiyu Ji and Kun Wan
 # A new bound on worst case error for FI mining approximation.
-# 2016/10/17
+# 2016/10/22
 #
 
 '''
+Determine whether an itemset is in the transaction
+Input: a transaction and an itemset
+Output: True if the transaction contains the itemset
+'''
+def isContained(itemset, transaction):
+    transactionSet = set(transaction)
+    for item in itemset:
+        if item not in transactionSet:
+            return False
+    return True
+
+'''
 Exact solutions.
-Input: dataset file name, # itemsets
+Input: dataset file name, itemsets
 Output: list of itemset frequencies
 '''
-def calcExactFreqs(fname, nItemsets):
-    freqs = [0 for _ in range(nItemsets+1)]
+def calcExactFreqs(fname, itemsets):
+    freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     nTransactions=0
     for line in f:
         nTransactions+=1
         transaction = [int(i) for i in line.strip().split(' ')]
-        for itemset in transaction:
-            if 0 <= itemset <= nItemsets:
-                freqs[itemset] += 1
+        for i in range(len(itemsets)):
+            if isContained(itemsets[i], transaction):
+                freqs[i] += 1
     f.close()
     return list(map(lambda x:x*1.0/nTransactions, freqs))
 
 '''
 Approximated solutions given sample size.
-Input: dataset file name, # itemsets, # samples.
+Input: dataset file name, itemsets, # samples.
 Output: list of approximated itemset frequencies
 '''
-def apprxFreqs(fname, nItemsets, nSamples):
-    freqs = [0 for _ in range(nItemsets+1)]
+def apprxFreqs(fname, itemsets, nSamples):
+    freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     lines = f.readlines()
     f.close()
@@ -38,9 +50,9 @@ def apprxFreqs(fname, nItemsets, nSamples):
     for _ in range(nSamples):
         line = lines[randint(0,nTransactions-1)]
         transaction = [int(i) for i in line.strip().split(' ')]
-        for itemset in transaction:
-            if 0 <= itemset <= nItemsets:
-                freqs[itemset] += 1
+        for i in range(len(itemsets)):
+            if isContained(itemsets[i], transaction):
+                freqs[i] += 1
     return list(map(lambda x:x*1.0/nSamples, freqs))
 
 '''
@@ -55,28 +67,28 @@ def worstError(freq1, freq2):
     
 '''
 Approximation with new bound.
-Input: dataset file name, # itemsets, epsilon, delta
+Input: dataset file name, itemsets, epsilon, delta
 Output: approximated frequencies, # samples
 '''
-def newBoundApprox(fname, nItemsets, epsilon, delta):
+def newBoundApprox(fname, itemsets, epsilon, delta):
     f = open(fname, 'r')
     nTransactions = 0
     for _ in f: nTransactions += 1
     f.close()
     
     from math import log
-    n = int((log(2*nItemsets)-log(delta))/(2*epsilon*epsilon))+1
+    n = int((log(2*len(itemsets))-log(delta))/(2*epsilon*epsilon))+1
     if n > nTransactions:
-        return calcExactFreqs(fname, nItemsets), nTransactions
-    return apprxFreqs(fname, nItemsets, n), n
+        return calcExactFreqs(fname, itemsets), nTransactions
+    return apprxFreqs(fname, itemsets, n), n
     
 '''
 Classical approximation using old bound (RU15@KDD)
-Input: dataset file name, # itemsets, epsilon, delta
+Input: dataset file name, itemsets, epsilon, delta
 Output: approximations, # samples
 '''
-def RUApprox(fname, nItemsets, epsilon, delta):
-    freqs = [0 for _ in range(nItemsets+1)]
+def RUApprox(fname, itemsets, epsilon, delta):
+    freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     lines = f.readlines()
     nTransactions = len(lines)
@@ -84,19 +96,72 @@ def RUApprox(fname, nItemsets, epsilon, delta):
     from random import randint
     from math import log
     n = 0
-    dn = int(2*log(2/delta)/(epsilon*epsilon))+1
-    while True:
+    dn = min(int(2*log(2/delta)/(epsilon*epsilon))+1, nTransactions)
+    while n < nTransactions:
         for _ in range(n, n+dn):
             line = lines[randint(0,nTransactions-1)]
             transaction = [int(i) for i in line.strip().split(' ')]
-            for itemset in transaction:
-                if 0 <= itemset <= nItemsets:
-                    freqs[itemset] += 1
+            for i in range(len(itemsets)):
+                if isContained(itemsets[i], transaction):
+                    freqs[i] += 1
         n = n+dn
         ell = max(freqs)**0.5
-        Delta = 2*ell/n*(2*log(nItemsets))**0.5 + (2*log(2/delta)/n)**0.5
+        Delta = 2*ell/n*(2*log(len(itemsets)))**0.5 + (2*log(2/delta)/n)**0.5
         if Delta <= epsilon or n >= nTransactions:
             break
-        dn = int(2*log(2/delta)/((epsilon-2*ell/n*(2*log(nItemsets))**0.5)**2))+1-n
+        dn = int(2*log(2/delta)/((epsilon-2*ell/n*(2*log(len(itemsets)))**0.5)**2))+1-n
         dn = max(dn,1)
     return list(map(lambda x:x*1.0/n,freqs)), n
+
+'''
+Our top-k approximate algorithm
+Input: dataset file name, itemsets, top-K, sample increase, delta
+Output: top-K itemsets and their frequencies
+'''
+def topK(fname, itemsets, K, deltaN, delta):
+    freqs = [0 for _ in range(len(itemsets))]
+    f = open(fname, 'r')
+    lines = f.readlines()
+    nTransactions = len(lines)
+    f.close()
+    from random import randint
+    from math import log
+    n = 0
+    while n<nTransactions:
+        for _ in range(deltaN):
+            line = lines[randint(0,nTransactions-1)]
+            transaction = [int(i) for i in line.strip().split(' ')]
+            for i in range(len(itemsets)):
+                if isContained(itemsets[i], transaction):
+                    freqs[i] = freqs[i]+1
+        n += deltaN
+        epsilon = ((log(2*len(itemsets))-log(delta))/(2*n))**.5
+        print(epsilon)
+        tmp = sorted(freqs, key=lambda x:-x)
+        if (tmp[K-1]-tmp[K])*1.0/n > epsilon:
+            return list(map(lambda x:itemsets[x], \
+                            sorted(range(len(itemsets)), key=lambda x:-freqs[x])[:K])),\
+                    list(map(lambda x:x*1.0/n, tmp[:K]))
+    freqs = calcExactFreqs(fname,itemsets)
+    return list(map(lambda x:itemsets[x], \
+                    sorted(range(len(itemsets)),key=lambda x:-freqs[x])[:K])), \
+           sorted(freqs, key=lambda x:-x)[:K]
+
+'''
+A-Priori Top-k algorithm
+Input: dataset file name, # items, top-K, sample increase, delta
+Output: top-k itemsets and their frequencies
+'''
+def AprioriTopK(fname, I, K, deltaN, delta):
+    if I<K:
+        print('Too few items for K')
+        return
+    singletons = [[i] for i in range(1, I+1)]
+    doubletons = []
+    topKSingle, topKSingleFreqs = topK(fname, singletons, K, deltaN, delta)
+    for i in range(K):
+        for j in range(i+1, K):
+            doubletons.append(topKSingle[i] + topKSingle[j])
+    topKDouble, topKDoubleFreqs = topK(fname, doubletons, K, deltaN, delta)
+    return topKDouble, topKDoubleFreqs
+
