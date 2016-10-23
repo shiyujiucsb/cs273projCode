@@ -114,54 +114,63 @@ def RUApprox(fname, itemsets, epsilon, delta):
     return list(map(lambda x:x*1.0/n,freqs)), n
 
 '''
-Our top-k approximate algorithm
+Our top-K approximate algorithm
 Input: dataset file name, itemsets, top-K, sample increase, delta
-Output: top-K itemsets and their frequencies
+Output: top-K itemsets and their frequencies, # samples
 '''
-def topK(fname, itemsets, K, deltaN, delta):
+def topK(fname, itemsets, K, sampleInc, delta):
     freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     lines = f.readlines()
     nTransactions = len(lines)
     f.close()
     from random import randint
-    from math import log
+    from math import log, exp
     n = 0
     while n<nTransactions:
-        for _ in range(deltaN):
+        for _ in range(sampleInc):
             line = lines[randint(0,nTransactions-1)]
             transaction = [int(i) for i in line.strip().split(' ')]
             for i in range(len(itemsets)):
                 if isContained(itemsets[i], transaction):
                     freqs[i] = freqs[i]+1
-        n += deltaN
-        epsilon = ((log(2*len(itemsets))-log(delta))/(2*n))**.5
-        print(epsilon)
+        n += sampleInc
         tmp = sorted(freqs, key=lambda x:-x)
-        if (tmp[K-1]-tmp[K])*1.0/n > epsilon:
+        middle = (tmp[K-1]+tmp[K])*.5
+        errorProb=0.0
+        for i in range(len(tmp)):
+            dProb = exp(-2.0/n*abs(tmp[i]-middle)**2)
+            errorProb +=dProb
+            if i>=K:
+                if errorProb>delta or errorProb+(len(tmp)-1-i)*dProb<=delta:
+                    break
+        if errorProb <= delta:
             return list(map(lambda x:itemsets[x], \
                             sorted(range(len(itemsets)), key=lambda x:-freqs[x])[:K])),\
-                    list(map(lambda x:x*1.0/n, tmp[:K]))
+                    list(map(lambda x:x*1.0/n, tmp[:K])), n
     freqs = calcExactFreqs(fname,itemsets)
     return list(map(lambda x:itemsets[x], \
                     sorted(range(len(itemsets)),key=lambda x:-freqs[x])[:K])), \
-           sorted(freqs, key=lambda x:-x)[:K]
+           sorted(freqs, key=lambda x:-x)[:K], len(itemsets)
 
 '''
-A-Priori Top-k algorithm
+A-Priori Top-K algorithm
 Input: dataset file name, # items, top-K, sample increase, delta
-Output: top-k itemsets and their frequencies
+Output: top-K itemsets and their frequencies, # samples
 '''
-def AprioriTopK(fname, I, K, deltaN, delta):
-    if I<K:
+def AprioriTopK(fname, I, K, sampleInc, delta):
+    if I*I<K:
         print('Too few items for K')
         return
     singletons = [[i] for i in range(1, I+1)]
     doubletons = []
-    topKSingle, topKSingleFreqs = topK(fname, singletons, K, deltaN, delta)
-    for i in range(K):
-        for j in range(i+1, K):
+    if K>=I:
+        topKSingle = singletons
+    else:
+        topKSingle, topKSingleFreqs, nSmp = topK(fname, singletons, K, sampleInc, delta)
+    for i in range(min(K,I)):
+        for j in range(i+1, min(K,I)):
             doubletons.append(topKSingle[i] + topKSingle[j])
-    topKDouble, topKDoubleFreqs = topK(fname, doubletons, K, deltaN, delta)
-    return topKDouble, topKDoubleFreqs
+    topKDouble, topKDoubleFreqs, nSmp = topK(fname, doubletons, K, sampleInc, delta)
+    return topKDouble, topKDoubleFreqs, nSmp
 
