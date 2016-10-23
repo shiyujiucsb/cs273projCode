@@ -116,9 +116,10 @@ def RUApprox(fname, itemsets, epsilon, delta):
 '''
 Our top-K approximate algorithm
 Input: dataset file name, itemsets, top-K, sample increase, delta
+    max sample ratio alpha
 Output: top-K itemsets and their frequencies, # samples
 '''
-def topK(fname, itemsets, K, sampleInc, delta):
+def topK(fname, itemsets, K, sampleInc, delta, alpha):
     freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     lines = f.readlines()
@@ -127,7 +128,7 @@ def topK(fname, itemsets, K, sampleInc, delta):
     from random import randint
     from math import log, exp
     n = 0
-    while n<nTransactions:
+    while True:
         for _ in range(sampleInc):
             line = lines[randint(0,nTransactions-1)]
             transaction = [int(i) for i in line.strip().split(' ')]
@@ -144,21 +145,18 @@ def topK(fname, itemsets, K, sampleInc, delta):
             if i>=K:
                 if errorProb>delta or errorProb+(len(tmp)-1-i)*dProb<=delta:
                     break
-        if errorProb <= delta:
+        if errorProb <= delta or n>=alpha*nTransactions:
             return list(map(lambda x:itemsets[x], \
                             sorted(range(len(itemsets)), key=lambda x:-freqs[x])[:K])),\
                     list(map(lambda x:x*1.0/n, tmp[:K])), n
-    freqs = calcExactFreqs(fname,itemsets)
-    return list(map(lambda x:itemsets[x], \
-                    sorted(range(len(itemsets)),key=lambda x:-freqs[x])[:K])), \
-           sorted(freqs, key=lambda x:-x)[:K], len(itemsets)
 
 '''
 A-Priori Top-K algorithm
-Input: dataset file name, # items, top-K, sample increase, delta
+Input: dataset file name, # items, top-K, sample increase, delta,
+    max sample ratio alpha
 Output: top-K itemsets and their frequencies, # samples
 '''
-def AprioriTopK(fname, I, K, sampleInc, delta):
+def AprioriTopK(fname, I, K, sampleInc, delta, alpha):
     if I*I<K:
         print('Too few items for K')
         return
@@ -167,10 +165,11 @@ def AprioriTopK(fname, I, K, sampleInc, delta):
     if K>=I:
         topKSingle = singletons
     else:
-        topKSingle, topKSingleFreqs, nSmp = topK(fname, singletons, K, sampleInc, delta)
+        topKSingle, topKSingleFreqs, nSmp = topK(fname, singletons, K, sampleInc, delta, alpha)
+    topKSingle.sort()
     for i in range(min(K,I)):
         for j in range(i+1, min(K,I)):
             doubletons.append(topKSingle[i] + topKSingle[j])
-    topKDouble, topKDoubleFreqs, nSmp = topK(fname, doubletons, K, sampleInc, delta)
+    topKDouble, topKDoubleFreqs, nSmp = topK(fname, doubletons, K, sampleInc, delta, alpha)
     return topKDouble, topKDoubleFreqs, nSmp
 
