@@ -114,6 +114,36 @@ def RUApprox(fname, itemsets, epsilon, delta):
     return list(map(lambda x:x*1.0/n,freqs)), n
 
 '''
+Exact top-k algorithm.
+Input: dataset file name, itemsets, top-K
+Output: top-K itemsets and their frequencies
+'''
+def exactTopK(fname, itemsets, K):
+    freqs = calcExactFreqs(fname, itemsets)
+    topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
+    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+
+'''
+Approx top-k algorithm with new bound.
+Input: dataset file name, itemsets, top-K, epsilon, delta
+Output: top-K itemsets and their frequencies
+'''
+def newBoundTopK(fname, itemsets, K, epsilon, delta):
+    freqs, n = newBoundApprox(fname, itemsets, epsilon, delta)
+    topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
+    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+
+'''
+Approx top-k algorithm by RU's classical method.
+Input: dataset file name, itemsets, top-K, epsilon, delta
+Output: top-K itemsets and their frequencies
+'''
+def RUtopK(fname, itemsets, K, epsilon, delta):
+    freqs, n = RUApprox(fname, itemsets, epsilon, delta)
+    topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
+    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+
+'''
 Our top-K approximate algorithm
 Input: dataset file name, itemsets, top-K, sample increase, delta
     max sample ratio alpha
@@ -173,3 +203,72 @@ def AprioriTopK(fname, I, K, sampleInc, delta, alpha):
     topKDouble, topKDoubleFreqs, nSmp = topK(fname, doubletons, K, sampleInc, delta, alpha)
     return topKDouble, topKDoubleFreqs, nSmp
 
+'''
+Precision test (epsilon-based): select K most frequent pairs. 
+Input: dataset file name, # items, top-K, epsilon, delta
+Output: precision, running time.
+'''
+def testEpsilonPrecision(fname, I, K, epsilon, delta):
+    if I*I<K:
+        print('Too few items for K')
+        return
+    singletons = [[i] for i in range(1, I+1)]
+    doubletons = []
+    if K>=I:
+        topKSingle = singletons
+    else:
+        topKSingle, topKSingleFreqs = exactTopK(fname, singletons, K)
+    topKSingle.sort()
+    for i in range(min(K,I)):
+        for j in range(i+1,min(K,I)):
+            doubletons.append(topKSingle[i] + topKSingle[j])
+            
+    from time import time
+    startTimeExact = time()
+    exactFIs, exactFreqs = exactTopK(fname, doubletons, K)
+    startTimeOurs = endTimeExact = time()
+    approxFIs, approxFreqs = newBoundTopK(fname, doubletons, K, epsilon, delta)
+    startTimeRU = endTimeOurs = time()
+    RUapprxFIs, RUapprxFreqs = RUtopK(fname, doubletons, K, epsilon, delta)
+    endTimeRU = time()
+    
+    ourPrecision = len(set(approxFIs) & set(exactFIs)) *1.0 / len(set(approxFIs))
+    RUPrecision = len(set(RUapprxFIs) & set(exactFIs)) *1.0 / len(set(RUapprxFIs))
+    print('Exact:', endTimeExact-startTimeExact)
+    print(ourPrecision, endTimeOurs-startTimeOurs)
+    print(RUPrecision, endTimeRU-startTimeRU)
+    
+'''
+Precision test (top-K): select K most frequent pairs. 
+Input: dataset file name, # items, top-K, sample increase, delta, alpha
+Output: precision, running time.
+'''
+def testTopKPrecision(fname, I, K, sampleInc, delta, alpha):
+    if I*I<K:
+        print('Too few items for K')
+        return
+    singletons = [[i] for i in range(1, I+1)]
+    doubletons = []
+    if K>=I:
+        topKSingle = singletons
+    else:
+        topKSingle, topKSingleFreqs = exactTopK(fname, singletons, K)
+    topKSingle.sort()
+    for i in range(min(K,I)):
+        for j in range(i+1,min(K,I)):
+            doubletons.append(topKSingle[i] + topKSingle[j])
+            
+    from time import time
+    startTimeExact = time()
+    exactFIs, exactFreqs = exactTopK(fname, doubletons, K)
+    startTimeOurs = endTimeExact = time()
+    approxFIs, approxFreqs, nSamples = topK(fname, doubletons, K, sampleInc, delta, alpha)
+    startTimeNew = endTimeOurs = time()
+    newFIs, newFreqs = newBoundTopK(fname, doubletons, K, .02, .001)
+    endTimeNew = time()
+    
+    ourPrecision = len(set(approxFIs) & set(exactFIs)) *1.0 / len(set(approxFIs))
+    newPrecision = len(set(newFIs) & set(exactFIs)) *1.0 / len(set(newFIs))
+    print('Exact:', endTimeExact-startTimeExact)
+    print(ourPrecision, endTimeOurs-startTimeOurs)
+    print(newPrecision, endTimeNew-startTimeNew)
