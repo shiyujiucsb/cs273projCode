@@ -121,7 +121,7 @@ Output: top-K itemsets and their frequencies
 def exactTopK(fname, itemsets, K):
     freqs = calcExactFreqs(fname, itemsets)
     topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
-    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+    return list(map(lambda x:(itemsets[x]), topKFIs))[:K], sorted(freqs, key=lambda x:-x)[:K]
 
 '''
 Approx top-k algorithm with new bound.
@@ -131,25 +131,24 @@ Output: top-K itemsets and their frequencies
 def newBoundTopK(fname, itemsets, K, epsilon, delta):
     freqs, n = newBoundApprox(fname, itemsets, epsilon, delta)
     topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
-    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+    return list(map(lambda x:(itemsets[x]), topKFIs))[:K], sorted(freqs, key=lambda x:-x)[:K]
 
 '''
-Approx top-k algorithm by RU's classical method.
+Approx top-k algorithm by RU's (epsilon, delta)-approximation method.
 Input: dataset file name, itemsets, top-K, epsilon, delta
 Output: top-K itemsets and their frequencies
 '''
 def RUtopK(fname, itemsets, K, epsilon, delta):
     freqs, n = RUApprox(fname, itemsets, epsilon, delta)
     topKFIs = sorted(range(len(itemsets)), key=lambda x:-freqs[x])
-    return list(map(lambda x:str(itemsets[x]), topKFIs)), sorted(freqs, key=lambda x:-x)
+    return list(map(lambda x:(itemsets[x]), topKFIs))[:K], sorted(freqs, key=lambda x:-x)[:K]
 
 '''
-Our top-K approximate algorithm
-Input: dataset file name, itemsets, top-K, sample increase, delta
-    max sample ratio alpha
+Our progressive top-K approximate algorithm
+Input: dataset file name, itemsets, top-K, sample increase, epsilon, delta
 Output: top-K itemsets and their frequencies, # samples
 '''
-def topK(fname, itemsets, K, sampleInc, delta, alpha):
+def ProgressiveTopK(fname, itemsets, K, sampleInc, epsilon, delta):
     freqs = [0 for _ in range(len(itemsets))]
     f = open(fname, 'r')
     lines = f.readlines()
@@ -157,6 +156,7 @@ def topK(fname, itemsets, K, sampleInc, delta, alpha):
     f.close()
     from random import randint
     from math import log, exp
+    N=min(nTransactions,int((log(2*len(itemsets))-log(delta))/(2*epsilon*epsilon))+1)
     n = 0
     while True:
         for _ in range(sampleInc):
@@ -175,7 +175,45 @@ def topK(fname, itemsets, K, sampleInc, delta, alpha):
             if i>=K:
                 if errorProb>delta or errorProb+(len(tmp)-1-i)*dProb<=delta:
                     break
-        if errorProb <= delta or n>=alpha*nTransactions:
+        if errorProb <= delta or n>N:
+            return list(map(lambda x:itemsets[x], \
+                            sorted(range(len(itemsets)), key=lambda x:-freqs[x])[:K])),\
+                    list(map(lambda x:x*1.0/n, tmp[:K])), n
+
+'''
+RU's classical top-K approximate algorithm
+Input: dataset file name, itemsets, top-K, sample increase, epsilon, delta
+Output: top-K itemsets and their frequencies, # samples
+'''
+def RUProgressiveTopK(fname, itemsets, K, sampleInc, epsilon, delta):
+    freqs = [0 for _ in range(len(itemsets))]
+    f = open(fname, 'r')
+    lines = f.readlines()
+    nTransactions = len(lines)
+    f.close()
+    from random import randint
+    from math import log, exp
+    n = 0
+    while True:
+        for _ in range(sampleInc):
+            line = lines[randint(0,nTransactions-1)]
+            transaction = [int(i) for i in line.strip().split(' ')]
+            for i in range(len(itemsets)):
+                if isContained(itemsets[i], transaction):
+                    freqs[i] = freqs[i]+1
+        n += sampleInc
+        ell = max(freqs)**.5
+        tmp = sorted(freqs, key=lambda x:-x)
+        middle = (tmp[K-1]+tmp[K])*.5
+        errorProb=0.0
+        for i in range(len(tmp)):
+            dProb = exp(-2.0/n*abs(tmp[i]-middle)**2)
+            errorProb +=dProb
+            if i>=K:
+                if errorProb>delta or errorProb+(len(tmp)-1-i)*dProb<=delta:
+                    break
+        Delta = 2*ell/n*(2*log(len(itemsets)))**0.5 + (2*log(2/delta)/n)**0.5
+        if errorProb <= delta or n>nTransactions or Delta<=epsilon:
             return list(map(lambda x:itemsets[x], \
                             sorted(range(len(itemsets)), key=lambda x:-freqs[x])[:K])),\
                     list(map(lambda x:x*1.0/n, tmp[:K])), n
@@ -204,11 +242,11 @@ def AprioriTopK(fname, I, K, sampleInc, delta, alpha):
     return topKDouble, topKDoubleFreqs, nSmp
 
 '''
-Precision test (epsilon-based): select K most frequent pairs. 
+Precision test (non-progressive top-K): select K most frequent pairs. 
 Input: dataset file name, # items, top-K, epsilon, delta
 Output: precision, running time.
 '''
-def testEpsilonPrecision(fname, I, K, epsilon, delta):
+def testNonProgressiveTopKPrecision(fname, I, K, epsilon, delta):
     if I*I<K:
         print('Too few items for K')
         return
@@ -231,19 +269,23 @@ def testEpsilonPrecision(fname, I, K, epsilon, delta):
     startTimeRU = endTimeOurs = time()
     RUapprxFIs, RUapprxFreqs = RUtopK(fname, doubletons, K, epsilon, delta)
     endTimeRU = time()
+
+    setApproxFIs = set([str(i) for i in approxFIs])
+    setExactFIs = set([str(i) for i in exactFIs])
+    setRUapprxFIs = set([str(i) for i in RUapprxFIs])
     
-    ourPrecision = len(set(approxFIs) & set(exactFIs)) *1.0 / len(set(approxFIs))
-    RUPrecision = len(set(RUapprxFIs) & set(exactFIs)) *1.0 / len(set(RUapprxFIs))
+    ourPrecision = len(setApproxFIs & setExactFIs) *1.0 / len(setApproxFIs)
+    RUPrecision = len(setRUapprxFIs & setExactFIs) *1.0 / len(setRUapprxFIs)
     print('Exact:', endTimeExact-startTimeExact)
     print(ourPrecision, endTimeOurs-startTimeOurs)
     print(RUPrecision, endTimeRU-startTimeRU)
     
 '''
-Precision test (top-K): select K most frequent pairs. 
-Input: dataset file name, # items, top-K, sample increase, delta, alpha
+Precision test (progressive top-K): select K most frequent pairs. 
+Input: dataset file name, # items, top-K, sample increase, epsilon, delta
 Output: precision, running time.
 '''
-def testTopKPrecision(fname, I, K, sampleInc, delta, alpha):
+def testProgressiveTopKPrecision(fname, I, K, sampleInc, epsilon, delta):
     if I*I<K:
         print('Too few items for K')
         return
@@ -262,13 +304,17 @@ def testTopKPrecision(fname, I, K, sampleInc, delta, alpha):
     startTimeExact = time()
     exactFIs, exactFreqs = exactTopK(fname, doubletons, K)
     startTimeOurs = endTimeExact = time()
-    approxFIs, approxFreqs, nSamples = topK(fname, doubletons, K, sampleInc, delta, alpha)
+    ourProgFIs, ourProgFreqs, nOurSamples = ProgressiveTopK(fname, doubletons, K, sampleInc, epsilon, delta)
     startTimeNew = endTimeOurs = time()
-    newFIs, newFreqs = newBoundTopK(fname, doubletons, K, .02, .001)
+    RUProgFIs, RUProgFreqs, nRUSamples = RUProgressiveTopK(fname, doubletons, K, sampleInc, epsilon, delta)
     endTimeNew = time()
     
-    ourPrecision = len(set(approxFIs) & set(exactFIs)) *1.0 / len(set(approxFIs))
-    newPrecision = len(set(newFIs) & set(exactFIs)) *1.0 / len(set(newFIs))
+    setOurProgFIs = set([str(i) for i in ourProgFIs])
+    setRUProgFIs = set([str(i) for i in RUProgFIs])
+    setExactFIs = set([str(i) for i in exactFIs])
+    
+    ourPrecision = len(setOurProgFIs & setExactFIs) *1.0 / len(setOurProgFIs)
+    newPrecision = len(setRUProgFIs & setExactFIs) *1.0 / len(setRUProgFIs)
     print('Exact:', endTimeExact-startTimeExact)
     print(ourPrecision, endTimeOurs-startTimeOurs)
     print(newPrecision, endTimeNew-startTimeNew)
