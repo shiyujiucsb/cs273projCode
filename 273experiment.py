@@ -79,7 +79,7 @@ def newBoundApprox(fname, itemsets, epsilon, delta):
     from math import log
     n = int((log(2*len(itemsets))-log(delta))/(2*epsilon*epsilon))+1
     if n > nTransactions:
-        return calcExactFreqs(fname, itemsets), nTransactions
+        return calcExactFreqs(fname, itemsets)
     return apprxFreqs(fname, itemsets, n), n
     
 '''
@@ -253,9 +253,9 @@ def testNonProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
     startTimeExact = time()
     exactFIs, exactFreqs, n = AprioriTopK(fname, I, K, exactTopK, sampleInc, epsilon, delta)
     startTimeOurs = endTimeExact = time()
-    approxFIs, approxFreqs, n = AprioriTopK(fname, I, K, newBoundTopK, sampleInc, epsilon, delta)
+    approxFIs, approxFreqs, nUs = AprioriTopK(fname, I, K, newBoundTopK, sampleInc, epsilon, delta)
     startTimeRU = endTimeOurs = time()
-    RUapprxFIs, RUapprxFreqs, n = AprioriTopK(fname, I, K, RUTopK, sampleInc, epsilon, delta)
+    RUapprxFIs, RUapprxFreqs, nRU = AprioriTopK(fname, I, K, RUTopK, sampleInc, epsilon, delta)
     endTimeRU = time()
 
     setApproxFIs = set([str(i) for i in approxFIs])
@@ -264,11 +264,11 @@ def testNonProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
     
     ourPrecision = len(setApproxFIs & setExactFIs) *1.0 / len(setApproxFIs)
     RUPrecision = len(setRUapprxFIs & setExactFIs) *1.0 / len(setRUapprxFIs)
-    ourRecall = len(setApproxFIs & setExactFIs) *1.0 / len(setExactFIs)
-    RURecall = len(setRUapprxFIs & setExactFIs) *1.0 / len(setExactFIs)
-    print('Exact:', endTimeExact-startTimeExact)
-    print(ourPrecision, ourRecall, endTimeOurs-startTimeOurs)
-    print(RUPrecision, RURecall, endTimeRU-startTimeRU)
+    print(fname)
+    #print('Exact:', endTimeExact-startTimeExact)
+    print(ourPrecision, endTimeOurs-startTimeOurs, nUs)
+    print(RUPrecision, endTimeRU-startTimeRU, nRU)
+    print('')
     
 '''
 Precision/recall test (progressive top-K): select K most frequent pairs. 
@@ -280,9 +280,9 @@ def testProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
     startTimeExact = time()
     exactFIs, exactFreqs, n = AprioriTopK(fname, I, K, exactTopK, sampleInc, epsilon, delta)
     startTimeOurs = endTimeExact = time()
-    approxFIs, approxFreqs, n = AprioriTopK(fname, I, K, ProgressiveTopK, sampleInc, epsilon, delta)
+    approxFIs, approxFreqs, nUs = AprioriTopK(fname, I, K, ProgressiveTopK, sampleInc, epsilon, delta)
     startTimeRU = endTimeOurs = time()
-    RUapprxFIs, RUapprxFreqs, n = AprioriTopK(fname, I, K, RUProgressiveTopK, sampleInc, epsilon, delta)
+    RUapprxFIs, RUapprxFreqs, nRU = AprioriTopK(fname, I, K, RUProgressiveTopK, sampleInc, epsilon, delta)
     endTimeRU = time()
 
     setApproxFIs = set([str(i) for i in approxFIs])
@@ -291,8 +291,29 @@ def testProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
     
     ourPrecision = len(setApproxFIs & setExactFIs) *1.0 / len(setApproxFIs)
     RUPrecision = len(setRUapprxFIs & setExactFIs) *1.0 / len(setRUapprxFIs)
-    ourRecall = len(setApproxFIs & setExactFIs) *1.0 / len(setExactFIs)
-    RURecall = len(setRUapprxFIs & setExactFIs) *1.0 / len(setExactFIs)
-    print('Exact:', endTimeExact-startTimeExact)
-    print(ourPrecision, ourRecall, endTimeOurs-startTimeOurs)
-    print(RUPrecision, RURecall, endTimeRU-startTimeRU)
+    print(fname)
+    #print('Exact:', endTimeExact-startTimeExact)
+    print(ourPrecision, endTimeOurs-startTimeOurs, nUs)
+    print(RUPrecision, endTimeRU-startTimeRU, nRU)
+
+# test zone
+
+#testNonProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
+testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
+
+print("========")
+
+#testProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+#testProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
