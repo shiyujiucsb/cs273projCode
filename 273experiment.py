@@ -297,23 +297,32 @@ def testProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
     print(RUPrecision, endTimeRU-startTimeRU, nRU)
 
 # test zone
+import sys
 
 #testNonProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
 #testNonProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
-testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
+#testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1kosarak':
+	testNonProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
 #testNonProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
 #testNonProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1pumsbstar':
+	testNonProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1retail':
+	testNonProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
 
 print("========")
 
 #testProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
 #testProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='2connect':
+	testProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='2kosarak':
+	testProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
 #testProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='2pumsb':
+	testProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='2pumsbstar':
+	testProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='2retail':
+	testProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
