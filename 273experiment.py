@@ -96,7 +96,7 @@ def RUApprox(fname, itemsets, epsilon, delta):
     from random import randint
     from math import log
     n = 0
-    dn = min(int(2*log(2/delta)/(epsilon*epsilon))+1, nTransactions)
+    dn = min(int(2*log(2/delta)/(epsilon*epsilon))+1, nTransactions//2)
     while n < nTransactions:
         for _ in range(n, n+dn):
             line = lines[randint(0,nTransactions-1)]
@@ -109,7 +109,7 @@ def RUApprox(fname, itemsets, epsilon, delta):
         Delta = 2*ell/n*(2*log(len(itemsets)))**0.5 + (2*log(2/delta)/n)**0.5
         if Delta <= epsilon or n >= nTransactions:
             break
-        dn = int(2*log(2/delta)/((epsilon-2*ell/n*(2*log(len(itemsets)))**0.5)**2))+1-n
+        dn = min(int(2*log(2/delta)/((epsilon-2*ell/n*(2*log(len(itemsets)))**0.5)**2))+1-n, nTransactions//2)
         dn = max(dn,1)
     return list(map(lambda x:x*1.0/n,freqs)), n
 
@@ -299,13 +299,18 @@ def testProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
 # test zone
 import sys
 
-#testNonProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1accidents':
+	testNonProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
+if sys.argv[1]=='1chess':
+	testNonProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
+if sys.argv[1]=='1connect':
+	testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
 if sys.argv[1]=='1kosarak':
 	testNonProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
-#testNonProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1mushroom':
+	testNonProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
+if sys.argv[1]=='1pumsb':
+	testNonProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
 if sys.argv[1]=='1pumsbstar':
 	testNonProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
 if sys.argv[1]=='1retail':
