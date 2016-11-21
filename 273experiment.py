@@ -64,6 +64,17 @@ def worstError(freq1, freq2):
     if len(freq1) != len(freq2) or not freq1 or not freq2:
         return None
     return max([abs(freq1[i]-freq2[i]) for i in range(len(freq1))])
+
+'''
+Print exact worst-case error and two worst-case error bounds.
+Input: #itemsets, #samples, epsilon, delta
+'''
+def printErrors(nItemsets, epsilon, delta):
+    from math import log
+    for n in range(1000,11000,1000):
+        ourNewBound = ((log(2*nItemsets) + log(1/delta))/(2*n))**0.5
+        RUBound = (2*log(2/delta)/n)**0.5
+        print(n, ourNewBound, RUBound)
     
 '''
 Approximation with new bound.
