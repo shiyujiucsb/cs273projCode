@@ -243,16 +243,17 @@ def AprioriTopK(fname, I, K, topKFunction, sampleInc, epsilon, delta):
         return
     singletons = [[i] for i in range(1, I+1)]
     doubletons = []
+    nSmp1, nSmp2 = 0, 0
     if K>=I:
         topKSingle = singletons
     else:
-        topKSingle, topKSingleFreqs, nSmp = topKFunction(fname, singletons, K, sampleInc, epsilon, delta)
+        topKSingle, topKSingleFreqs, nSmp1 = topKFunction(fname, singletons, K, sampleInc, epsilon, delta)
     topKSingle.sort()
     for i in range(min(K,I)):
         for j in range(i+1, min(K,I)):
             doubletons.append(topKSingle[i] + topKSingle[j])
-    topKDouble, topKDoubleFreqs, nSmp = topKFunction(fname, doubletons, K, sampleInc, epsilon, delta)
-    return topKDouble, topKDoubleFreqs, nSmp
+    topKDouble, topKDoubleFreqs, nSmp2 = topKFunction(fname, doubletons, K, sampleInc, epsilon, delta)
+    return topKDouble, topKDoubleFreqs, nSmp1+nSmp2
 
 '''
 Precision/recall test (non-progressive top-K): select K most frequent pairs. 
@@ -311,34 +312,37 @@ def testProgressiveTopK(fname, I, K, sampleInc, epsilon, delta):
 import sys
 
 if sys.argv[1]=='1accidents':
-	testNonProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/accidents.dat.txt',468,100,100,0.05,0.0001)
 if sys.argv[1]=='1chess':
 	testNonProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
 if sys.argv[1]=='1connect':
-	testNonProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/connect.dat.txt',129,100,100,0.05,0.0001)
 if sys.argv[1]=='1kosarak':
-	testNonProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/kosarak.dat.txt',41270,100,100,0.05,0.0001)
 if sys.argv[1]=='1mushroom':
-	testNonProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/mushroom.dat.txt',119,100,100,0.05,0.0001)
 if sys.argv[1]=='1pumsb':
-	testNonProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/pumsb.dat.txt',7116,100,100,0.05,0.0001)
 if sys.argv[1]=='1pumsbstar':
-	testNonProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/pumsb_star.dat.txt',7116,100,100,0.05,0.0001)
 if sys.argv[1]=='1retail':
-	testNonProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
+	testNonProgressiveTopK('dataset/retail.dat.txt',16470,100,100,0.05,0.0001)
 
 print("========")
 
-#testProgressiveTopK('dataset/accidents.dat.txt',68,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
+if sys.argv[1]=='2accidents':
+        testProgressiveTopK('dataset/accidents.dat.txt',468,100,100,0.05,0.0001)
+if sys.argv[1]=='2chess':
+        testProgressiveTopK('dataset/chess.dat.txt',75,100,100,0.05,0.0001)
 if sys.argv[1]=='2connect':
-	testProgressiveTopK('dataset/connect.dat.txt',70,100,100,0.05,0.0001)
+	testProgressiveTopK('dataset/connect.dat.txt',129,100,100,0.05,0.0001)
 if sys.argv[1]=='2kosarak':
-	testProgressiveTopK('dataset/kosarak.dat.txt',70,100,100,0.05,0.0001)
-#testProgressiveTopK('dataset/mushroom.dat.txt',70,100,100,0.05,0.0001)
+	testProgressiveTopK('dataset/kosarak.dat.txt',41270,100,100,0.05,0.0001)
+if sys.argv[1]=='2mushroom':
+        testProgressiveTopK('dataset/mushroom.dat.txt',119,100,100,0.05,0.0001)
 if sys.argv[1]=='2pumsb':
-	testProgressiveTopK('dataset/pumsb.dat.txt',70,100,100,0.05,0.0001)
+	testProgressiveTopK('dataset/pumsb.dat.txt',7116,100,100,0.05,0.0001)
 if sys.argv[1]=='2pumsbstar':
-	testProgressiveTopK('dataset/pumsb_star.dat.txt',70,100,100,0.05,0.0001)
+	testProgressiveTopK('dataset/pumsb_star.dat.txt',7116,100,100,0.05,0.0001)
 if sys.argv[1]=='2retail':
-	testProgressiveTopK('dataset/retail.dat.txt',70,100,100,0.05,0.0001)
+	testProgressiveTopK('dataset/retail.dat.txt',16470,100,100,0.05,0.0001)
